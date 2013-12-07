@@ -1,3 +1,1071 @@
+# Phrase: Report time delta with String                                
+#======================================================================
+def sum() inject(0) { |sum,e| sum + e } end
+require "date"
+def report_time(from, to)
+  from = DateTime.parse(from)
+  to   = DateTime.parse(to)
+  sec = (to - from) * 24 * 60 * 60
+  hour, sec = sec.divmod(60*60)
+  min , sec = sec.divmod(60)
+  "%02d:%02d:%02d" % [ hour, min, sec ]
+end
+# start = "2011/12/09 05:31:42"
+# finish = "2011/12/09 08:38:01"
+start = "05:31:42"
+finish = "08:38:01"
+report_time start , finish  # => "03:06:19"
+
+# Phrase: Environment PATH                                             
+#======================================================================
+env_path = ENV['PATH'].split(":")
+env_path.unshift "/home/analysis/new_analog/bin"
+ENV['PATH'] = env_path.join(":")
+ENV['PATH']
+
+# Phrase: date range                                                   
+#======================================================================
+require "date"
+range = "20111020-20111025"
+def daterange(rangestr)# {{{
+  from, to =  rangestr.split("-").map { |e| Date.parse e }
+  result = []
+  from.upto(to) do |day|
+    result << day.strftime("%Y%m%d")
+  end
+  result
+end# }}}
+
+daterange range
+# => ["20111020", "20111021", "20111022", "20111023", "20111024", "20111025"]
+
+# Phrase: Optparse                                                     
+#======================================================================
+#!/usr/bin/env ruby
+require 'optparse'
+require 'pp'
+
+# This hash will hold all of the options
+# parsed from the command-line by
+# OptionParser.
+options = {}
+
+optparse = OptionParser.new do |opts|
+  # opts.banner = "Usage: #{File.basename($0)} -f hostlist [OPTIONS]"
+
+  opts.on( '-h', '--help', 'Display this screen' ) do
+    puts opts
+    exit
+  end
+
+  # Simple Switch
+  # =======================
+  opts.on( '-s', '--simple', "Simple argument" ) do
+  options[:simple] = false
+    options[:simple] = true
+  end
+
+  # Switch with Mandatory Parameter
+  # =======================
+  options[:mand] = ""
+  opts.on( '-m', '--mandatory FILE', "Mandatory argument" ) do|f|
+    options[:mand] = f
+  end
+
+  # Optional Parameters
+  # =======================
+  options[:opt] = false
+  opts.on( '-o', '--optional [OPT]', "Optional argument" ) do|f|
+    options[:opt] = f || "nothing"
+  end
+
+  # Convert to float
+  # =======================
+  options[:float] = 0.0
+  opts.on( '-f', '--float NUM', Float, "Convert to float" ) do|f|
+    options[:float] = f
+  end
+
+  # Convert to Array
+  # =======================
+  options[:list] = []
+  opts.on( '-l', '--list a,b,c', Array, "List of parameters" ) do |l|
+    options[:list] = l
+  end
+
+  # Restricted parameter
+  # =======================
+  options[:set] = :yes
+  opts.on( '', '--set OPT', [:yes, :no, :maybe], "Parameters from a set" ) do |s|
+    options[:set] = s
+  end
+
+  # Define both standard and degated option
+  # =======================
+  options[:neg] = false
+  opts.on( '-n', '--[no-]negated', "Negated forms" ) do |n|
+    options[:neg] = n
+  end
+end
+
+# ARGV=%w(
+  # --s no # !> already initialized constant ARGV
+# )
+begin
+  optparse.parse!
+rescue OptionParser::ParseError => err
+  $stderr.puts err.message
+  $stderr.puts optparse.help
+  exit 1
+end
+
+pp "Options:", options
+pp "ARGV:", ARGV
+# >> "Options:"
+# >> {:opt=>false,
+# >>  :float=>0.0,
+# >>  :neg=>false,
+# >>  :simple=>false,
+# >>  :set=>:yes,
+# >>  :list=>[],
+# >>  :mand=>""}
+# >> "ARGV:"
+# >> ["--s", "no"]
+
+# Phrase: orderd_hash                                                  
+#======================================================================
+require "rubygems"
+require "active_support"
+orderd_hash = ActiveSupport::OrderedHash.new
+orderd_hash[:server1] = "192.168.1.1"
+orderd_hash[:server2] = "192.168.1.2"
+orderd_hash.each do |k,v|
+  puts "#{k} #{v}"
+end
+# >> server1 192.168.1.1
+# >> server2 192.168.1.2
+
+# Phrase: yaml                                                         
+#======================================================================
+# load stream
+require "yaml"
+require "pp"
+
+YAML.load_stream(File.read("tryit.yaml")).documents.each do |doc|
+  pp doc
+end
+
+# Phrase: [fog] dns example
+#======================================================================
+require 'rubygems'
+require 'shindo'
+
+require File.join(File.dirname(__FILE__), '..', 'lib', 'fog')
+require File.join(File.dirname(__FILE__), '..', 'tests', 'helper')
+
+Shindo.tests('dns examples', 'dns') do
+
+  # iterate over all the providers
+  Fog.providers.each do |provider|
+
+    provider = eval(provider) # convert from string to object
+
+    # skip if provider does not have storage
+    next unless provider.respond_to?(:services) && provider.services.include?(:dns)
+
+    tests(provider, provider.to_s.downcase) do
+
+      # use shortcuts to instantiate connection
+      @dns = Fog::DNS.new(:provider => provider.to_s)
+
+      # create a zone
+      #   domain should be the hostname
+      #   email is only required for linode, but included for consistency
+      tests('@zone = @dns.zones.create').succeeds do
+        @zone = @dns.zones.create(
+          :domain => 'fogdnsexamples.com',
+          :email => 'tests@fogdnsexamples.com'
+        )
+      end
+
+      # create a record in the zone
+      #   ip is the address to route to
+      #   name is the name for the record
+      #   type is the type of record to create
+      tests('@record = @zone.records.create').succeeds do
+        @record = @zone.records.create(
+          :value  => '1.2.3.4',
+          :name   => 'www.fogdnsexamples.com',
+          :type   => 'A'
+        )
+      end
+
+      # list zones
+      tests('@zones = @dns.zones').succeeds do
+        @zones = @dns.zones
+      end
+
+      # get a zone
+      tests('@dns.zones.get(@zone.identity)').succeeds do
+        @dns.zones.get(@zone.identity)
+      end
+
+      # list records
+      tests('@records = @zone.records').succeeds do
+        @records = @zone.records
+      end
+
+      # get a record
+      tests('@zone.records.get(@record.identity)').succeeds do
+        @zone.records.get(@record.identity)
+      end
+
+      # destroy the record
+      tests('@record.destroy').succeeds do
+        @record.destroy
+      end
+
+      # destroy the zone
+      tests('@zone.destroy').succeeds do
+        @zone.destroy
+      end
+
+    end
+
+  end
+
+end
+
+# Phrase: require relative path
+#======================================================================
+require File.join(File.dirname(__FILE__), '..', 'lib', 'fog')
+
+#  Phrase: ANSI color
+# ======================================================================
+module Colorize
+  color_table =  {
+    :bold    => "\e[1m",
+    :black   => "\e[30m",
+    :red     => "\e[31m",
+    :blue    => "\e[34m",
+    :cyan    => "\e[36m",
+    :green   => "\e[32m",
+    :magenta => "\e[35m",
+    :yellow  => "\e[33m",
+    :white   => "\e[37m",
+  }
+  CLEAR      = "\e[0m"
+  color_table.each do |color, code|
+    define_method(color) do
+      "#{code}#{self}#{CLEAR}"
+    end
+  end
+end
+Colorize.instance_methods
+class String
+  include Colorize
+end
+puts "ABC".red + "BLUDE".blue
+
+#  Phrase: Library
+# ======================================================================
+instance_variable_defined?
+$:.unshift "/home/maeda_taku/dev/ruby/lib"
+require "t9md_util"
+
+T9mdUtil::ROOT # => "/home/maeda_taku/dev/ruby"
+T9mdUtil::VERSION # => "0.10.0"
+
+#  Phrase: unite test
+# ======================================================================
+require "test/unit"
+
+class TestSimpleNumber < Test::Unit::TestCase
+  def test_assert_raise
+    assert_raise(NoMethodError) do
+      :cats + :dogs
+    end
+  end
+end
+
+#  Phrase: CPS style 2
+# ======================================================================
+class Split
+  def initialize(app) @app = app end
+  def call(data)
+    @app.call data.split
+  end
+end
+class Upcase
+  def initialize(app) @app = app end
+  def call(data)
+    @app.call data.map(&:upcase)
+  end
+end
+class Eliminate
+  def initialize(app)
+    @app = app
+    @words = %w(badword drug)
+  end
+  def call(data)
+    data.map! do |e|
+      if @words.include? e
+        "*" * e.size
+      else
+        e
+      end
+    end
+    @app.call(data)
+  end
+end
+class Join
+  def initialize(app) @app = app end
+  def call(data)
+    @app.call(data.join("\n"))
+  end
+end
+
+class App
+  def initialize
+    puts "App start"
+  end
+  def call(env)
+    env
+  end
+end
+
+class Builder
+  def initialize(string, &blk)
+    @string = string
+    instance_eval(&blk)
+  end
+  def result
+    @result
+  end
+  @@apps = []
+  def run(klass)
+    @@apps.unshift klass
+  end
+  def to_app(initial_app)
+    @@apps.inject(initial_app) do |app, middleware|
+      app = middleware.new(app)
+      app
+    end
+  end
+  def finish
+    app = to_app App.new
+    @result = app.call(@string)
+  end
+end
+string =<<'EOS'
+this is the sentence
+for testing CPS style
+programming , 
+splitted , eliminated badword and like drug
+and then upcased
+finally joined with "\n"
+EOS
+ret = Builder.new(string) do
+  run Split
+  run Eliminate
+  run Upcase
+  run Join
+  finish
+end
+puts ret.result # => nil
+# >> App start
+# >> THIS
+# >> IS
+# >> THE
+# >> SENTENCE
+# >> FOR
+# >> TESTING
+# >> CPS
+# >> STYLE
+# >> PROGRAMMING
+# >> ,
+# >> SPLITTED
+# >> ,
+# >> ELIMINATED
+# >> *******
+# >> AND
+# >> LIKE
+# >> ****
+# >> AND
+# >> THEN
+# >> UPCASED
+# >> FINALLY
+# >> JOINED
+# >> WITH
+# >> "\N"
+
+#  Phrase: CPS middleware
+# ======================================================================
+class A
+  def initialize(app)
+    @app = app
+  end
+  def call(env)
+    puts "start A"
+    res = @app.call(env)
+    res << self.class.name
+    puts "end A"
+    res
+  end
+end
+
+class B
+  def initialize(app)
+    @app = app
+  end
+  def call(env)
+    puts "start B"
+    res = @app.call(env)
+    res << self.class.name
+    puts "end B"
+    res
+  end
+end
+class C
+  def initialize(app)
+    @app = app
+  end
+
+  def call(env)
+    puts "start C"
+    res = @app.call(env)
+    res << self.class.name
+    puts "end C"
+    res
+  end
+end
+class D
+  def initialize(app)
+    @app = app
+  end
+
+  def call(env)
+    puts "start D"
+    res = @app.call(env)
+    res << self.class.name
+    puts "end D"
+    res
+  end
+end
+class App
+  def call(env)
+    []
+  end
+end
+
+class Builder
+  def initialize(&blk)
+    instance_eval(&blk)
+  end
+
+  def result
+    @result
+  end
+  @@apps = []
+  def use(klass)
+    @@apps << klass
+  end
+  def to_app(initial_app)
+    @@apps.inject(initial_app) do |app, middleware|
+      app = middleware.new(app)
+    end
+  end
+  def run(initial_app)
+    app = to_app initial_app
+    @result = app.call({})
+  end
+end
+ret = Builder.new do
+  use A
+  use B
+  use C
+  use D
+  run App.new
+end
+ret.result # => ["A", "B", "C", "D"]
+# >> start D
+# >> start C
+# >> start B
+# >> start A
+# >> end A
+# >> end B
+# >> end C
+# >> end D
+
+#  Phrase: [metaprog] command with inherited hook
+# ======================================================================
+module Command
+  class Base
+    def self.register(shortcut)
+      shortcut # => 
+      registered[shortcut] = self
+    end
+    def self.registered
+      @@registered ||= {}
+    end
+
+    def self.run(*args)
+      new.call(*args)
+    end
+
+    def self.inherited(klass)
+      if klass.name =~ /Command?/
+        cmdname = klass.name.split('::').last.sub(/Command?/,'').downcase # => "ls", "cd"
+        registered[cmdname] = klass
+      end
+    end
+  end
+  class LsCommand < Base
+    def call
+      "ls called!"
+    end
+  end
+  class CdCommand < Base
+    def call
+      "cd called!"
+    end
+  end
+end
+
+Command::Base.registered.each do |cmd, runnable|
+  "`#{cmd}': #{runnable.run}" # => "`cd': cd called!", "`ls': ls called!"
+end
+
+#  Phrase: Thor example
+# ======================================================================
+#!/usr/bin/env ruby
+
+require "rubygems"
+require "thor"
+require "thor/group"
+
+class Counter < Thor
+  desc "one", "Prints 1, 2, 3"
+  def one
+    puts 1
+    invoke :two
+    invoke :three
+  end
+  
+  desc "two", "Prints 2, 3"
+  def two
+    puts 2
+    invoke :three
+  end
+  
+  desc "three", "Prints 3"
+  def three
+    puts 3
+  end
+end
+
+# ARGV=['three']
+# Counter.start
+
+class Counter2 < Thor::Group
+  desc "Prints 1, 2, 3" # !> method redefined; discarding old padding=
+ # !> instance variable @first not initialized
+  def one
+    puts 1
+  end
+
+  def two
+    puts 2
+  end
+
+  def three
+    puts 3
+  end
+end
+
+ARGV = ['1'] # !> already initialized constant ARGV
+Counter2.start
+# >> 1
+# >> 2
+# >> 3
+
+#  Phrase: Enumerable and to_proc
+# ======================================================================
+
+# class Symbol
+  # def to_proc
+    # proc { |obj, *args| obj.send(self, *args) }
+  # end
+# end
+
+up = %w( a b c d e ).map(&:upcase) # => ["A", "B", "C", "D", "E"]
+up # => ["A", "B", "C", "D", "E"]
+class Person
+  attr_accessor :name, :age
+  def initialize(name, age)
+    @name = name
+    @age = age
+    self.class.list << self
+  end
+
+  class << self
+    def list
+      @list ||= []
+    end
+  end
+end
+
+persons = %w(
+  taku       12
+  yurie      13
+  takeshi    16
+  matumoto   21
+  yoshii     45
+)
+
+persons = persons.each_slice(2).map do |name, age|
+  Person.new(name, age)
+end
+persons == Person.list # => true
+
+names = persons.map(&:name) # => ["taku", "yurie", "takeshi", "matumoto", "yoshii"]
+ages  = persons.map(&:age) # => ["12", "13", "16", "21", "45"]
+names.zip(ages) # => [["taku", "12"], ["yurie", "13"], ["takeshi", "16"], ["matumoto", "21"], ["yoshii", "45"]]
+
+persons.detect {|p| p.name == 'yurie'} # => #<Person:0x7f90eae24500 @age="13", @name="yurie">
+
+#  Phrase: delegate methods with Forwardable module
+# ======================================================================
+require "forwardable"
+
+class Member
+  extend Forwardable
+
+  # delegate :size and :map methods to object held as @deleg.
+  # means, when you calse Member#size, Member#deleg#size is called,
+  # when you call Member#map, Member#deleg#map is called.
+  def_delegators :@delg, :size, :map
+
+  attr_accessor :delg
+  def initialize(*args)
+    @delg = *args
+  end
+end
+
+m = Member.new(1,2,3,4,5) # => #<Member:0x7f06e26c4a18 @delg=[1, 2, 3, 4, 5]>
+m.map { |num| num * 10 } # => [10, 20, 30, 40, 50]
+m.size # => 5
+
+# find_all is not delegated yet.
+m.find_all { |num| num > 2 } rescue $!.class # => NoMethodError
+
+
+# now we start to delegate :find_all to @delg
+class Member
+  def_delegators :@delg, :find_all
+end
+
+# so successfully call :find_all
+m.find_all { |num| num > 2 }  # => [3, 4, 5]
+
+#  Phrase: [metaprog] retryable
+# ======================================================================
+def retryable(opts=nil)
+  opts = { :tries => 1, :on => Exception }.merge(opts || {})
+  org_try = opts[:tries]
+
+  begin
+    return yield
+  rescue *opts[:on]
+    if (opts[:tries] -= 1) > 0
+      sleep opts[:sleep].to_f if opts[:sleep]
+      retry
+    end
+    raise "couldunt! inspite of I tried #{org_try}"
+  end
+end
+
+retryable(:tries => 3, :on => Exception, :sleep => 1) do
+  File.open('/etc/hosts', 'w')
+end
+
+#  Phrase: [metaprog] different way to express inclusion
+# ======================================================================
+SUPPORTED_OS = %w(linux bsd mac)
+
+def SUPPORTED_OS.support(os)
+  include? os
+end
+
+class << SUPPORTED_OS
+  alias_method :support_for, :include?
+end
+
+SUPPORTED_OS.include? "bsd" # => true
+SUPPORTED_OS.include? "mac" # => true
+SUPPORTED_OS.include? "win" # => false
+
+SUPPORTED_OS.support "bsd" # => true
+SUPPORTED_OS.support "mac" # => true
+SUPPORTED_OS.support "win" # => false
+
+SUPPORTED_OS.support_for "bsd" # => true
+SUPPORTED_OS.support_for "mac" # => true
+SUPPORTED_OS.support_for "win" # => false
+
+class String
+  def included_in?(list)
+    list.include?(self)
+  end
+  # alias_method :supprted_by? :included?
+end
+
+"bsd".included_in? SUPPORTED_OS # => true
+"mac".included_in? SUPPORTED_OS # => true
+"win".included_in? SUPPORTED_OS # => false
+
+#  Phrase: [metaprog] convert instance ver to hash
+# ======================================================================
+class C
+  attr_accessor :a, :b, :c
+  def initialize
+  end
+
+  def to_hash
+    instance_variables.inject({}) do |acc,iv|
+      acc[iv.to_s[1..-1]] = instance_variable_get(iv)
+      acc
+    end
+  end
+end
+
+c = C.new
+c.a = "a"
+c.b = "b"
+c.c = "c"
+c
+ # => #<C:0x7fd43ba48c58 @a="a", @b="b", @c="c">
+c.to_hash
+ # => {"a"=>"a", "b"=>"b", "c"=>"c"}
+
+#  Phrase: At exit hook is First-In-First-Out
+# ======================================================================
+at_exit do
+  puts "Have a nice day."
+end
+
+at_exit do
+  puts "Goodbye"
+end
+# >> Goodbye
+# >> Have a nice day.
+
+#  Phrase: [metaprog] Lazy initialization
+# ======================================================================
+# Lazy initialization and abstract driver(howto) detail
+class DocViewer
+  def initialize(title, author, &how_to_get_content)
+    @title = title
+    @author = author
+    @initializer = how_to_get_content
+    @content = ""
+  end
+
+  def content
+    if @initializer
+      @content = @initializer.call
+      @initializer = nil
+    end
+    @content
+  end
+end
+
+hosts = DocViewer.new("hosts", "system") do
+  File.read('/etc/hosts')
+end
+
+hosts.instance_eval { @content.size } # => 0
+hosts.content
+hosts.instance_eval { @content.size } # => 441
+
+google = DocViewer.new("google", "web") do
+  require "open-uri"
+  open('http://www.google.com/').read
+end
+
+google.instance_eval { @content.size } # => 0
+google.content
+google.instance_eval { @content.size } # => 27630
+
+#  Phrase: [meta] flat scope with block
+# ======================================================================
+class Counter
+  counter = 0
+  define_method(:increment) { |num| counter += num }
+  define_method(:decrement) { |num| counter -= num }
+  define_method(:counter) { counter }
+end
+c1 = Counter.new
+c1.increment 1 # => 1
+c1.increment 1 # => 2
+c1.increment 1 # => 3
+c1.decrement 1 # => 2
+c2 = Counter.new
+c2.counter # => 2
+
+#  Phrase: [metaprog] inherited hook
+# ======================================================================
+class DocumentReader
+  class << self
+    attr_accessor :supported_doctype
+  end
+
+  @supported_doctype = []
+  
+  def self.read(path)
+    reader = reader_for(path)
+    reader.read if reader
+  end
+
+  def self.reader_for(path)
+    k = @supported_doctype.detect do |klass|
+      klass.can_read?(path)
+    end
+    k.new(path) if k
+  end
+
+  def self.inherited(subclass)
+    @supported_doctype << subclass
+  end
+
+  attr_reader :path
+  def initialize(path)
+    @path = path
+  end
+  def read
+    "#{path} is readed by instance of #{self.class}"
+  end
+end
+
+def define_class(name, match)
+  k = Class.new(DocumentReader)
+  c = class << k ; self ; end
+  c.instance_eval do |obj|
+    define_method("can_read?") do |path|
+      path =~ match
+    end
+  end
+  eval("#{name} = k")
+end
+
+READERS = {
+  'TxtReader'  => /.*\.txt$/,
+  'YamlReader' => /.*\.(yml|yaml)$/,
+  'XmlReader'  => /.*\.xml$/,
+  'JsonReader' => /.*\.(jsn|json)$/,
+}
+
+READERS.each do |klass_name, pattern|
+  define_class klass_name, pattern
+end
+
+# class TxtReader < DocumentReader
+  # class << self
+    # def can_read?(path)
+      # path =~ /.*\.txt$/
+    # end
+  # end
+# end
+# class YamlReader < DocumentReader
+  # class << self
+    # def can_read?(path)
+      # path =~ /.*\.(yml|yaml)$/
+    # end
+  # end
+# end
+# class XmlReader < DocumentReader
+  # class << self
+    # def can_read?(path)
+      # path =~ /.*\.xml$/
+    # end
+  # end
+# end
+# class JsonReader < DocumentReader
+  # class << self
+    # def can_read?(path)
+      # path =~ /.*\.(jsn|json)$/
+    # end
+  # end
+# end
+
+DocumentReader.read("hoge.txt") # => "hoge.txt is readed by instance of TxtReader"
+DocumentReader.read("hgoe.jsn") # => "hgoe.jsn is readed by instance of JsonReader"
+DocumentReader.read("hgoe.json") # => "hgoe.json is readed by instance of JsonReader"
+DocumentReader.read("hgoe.xml") # => "hgoe.xml is readed by instance of XmlReader"
+DocumentReader.read("hgoe.jpg") # => nil
+DocumentReader.read("hgoe.yaml") # => "hgoe.yaml is readed by instance of YamlReader"
+DocumentReader.read("hgoe.yml") # => "hgoe.yml is readed by instance of YamlReader"
+DocumentReader.read("hgoe.ogg") # => nil
+
+#  Phrase: ERB based template
+# ======================================================================
+require 'erb' # => true
+
+class String
+  def unindent!(pat=nil)
+    str = split("\n")
+    pat ||= /(\S)/.match(str.first)[1]
+    str.map do |l|
+      l.sub(/.*?#{Regexp.escape(pat)}/,"")
+    end.join("\n")
+  end
+end
+
+class Template
+  @@template_list = {}
+  @@template_list[:min] =<<-'EOS'
+  |<%= name %>
+  |<%= "#{@ip}:#{@port}" %>
+  EOS
+  @@template_list[:mid] =<<-'EOS'
+  |IP: <%= @ip %>
+  |Port: <%= @port %>
+  EOS
+  @@template_list.each { |k,v|
+    @@template_list[k] = v.unindent!('|')
+  }
+
+  def initialize(opt={})
+    opt.each do |k,v|
+      instance_variable_set("@#{k}", v)
+    end
+  end
+
+  def render name
+    name # => :min, :mid
+    template(name).result binding
+  end
+
+  def template name
+    ERB.new(@@template_list[name], nil, '-')
+  end
+end
+opt = {
+  :ip => "192.168.1.1",
+  :port => "80",
+}
+puts Template.new(opt).render(:min)
+puts
+puts Template.new(opt).render(:mid)
+ # => nil
+  
+# >> min
+# >> 192.168.1.1:80
+# >> 
+# >> IP: 192.168.1.1
+# >> Port: 80
+
+#  Phrase: String#unindent
+# ======================================================================
+class String
+  def unindent!(pat=nil)
+    str = split("\n")
+    pat ||= /(\S)/.match(str.first)[1]
+    str.map do |l|
+      l.sub(/.*?#{Regexp.escape(pat)}/,"")
+    end.join("\n")
+  end
+end
+      str=<<-'EOS'
+      |<%= name %>
+      |<%= "#{@ip}:#{@port}" %>
+      EOS
+
+puts str
+# >>       |<%= name %>
+# >>       |<%= "#{@ip}:#{@port}" %>
+#
+puts str.unindent!('|')
+# >> <%= name %>
+# >> <%= "#{@ip}:#{@port}" %>
+
+#  Phrase: [facets] String#rewrite
+# ======================================================================
+require "rubygems"
+require "facets"
+
+str =<<'EOS'
+ero
+sex
+good word
+is not rewritten but dead
+punk is not good word?
+EOS
+
+rules = [
+  [/sex/, 'xxx'],
+  [/ero/, 'xxx'],
+  [/dead/, 'xxx'],
+  [/punk/, 'xxx'],
+]
+puts str.rewrite(rules)
+# >> xxx
+# >> xxx
+# >> good word
+# >> is not rewritten but xxx
+# >> xxx is not good word?
+
+#  Phrase: const_missing
+# ======================================================================
+class Foo
+  def Foo.const_missing(id)
+    puts "#{id} is #{id.class}"
+  end
+end
+
+Foo::Bar  # => nil
+Foo::Hoge # => nil
+
+#  Phrase: input filter from jugyo's Earthquake
+# ======================================================================
+def input_filters
+  @input_filters ||= []
+end
+def input_filter(filter_id, &blk)
+  input_filters << [filter_id, blk]
+end
+
+input_filter(:upcase) do |text|
+  text.upcase
+end
+input_filter(:chop) do |text|
+  text.chop
+end
+input_filter(:reverse) do |text|
+  text.reverse
+end
+
+input_filters.map do |name, proc|
+  name # => :upcase, :chop, :reverse
+end
+
+def log str
+  puts "debug: #{str}"
+end
+
+def input(text)
+  input_filters.each do |name, filter|
+    text = filter.call(text)
+    log "filter: apply #{name}"
+  end
+  text
+end
+
+input "abc" # => "BA"
+# >> debug: filter: apply upcase
+# >> debug: filter: apply chop
+# >> debug: filter: apply reverse
+
 # Phrase: Array with size limit
 #===========================================================
 class ArrayWithSizeLimit < Array
@@ -519,12 +1587,12 @@ def read_code3( source_file )
   func.call("", 0, 0, File.open(source_file).readlines)
 end
 
-SOURCE =  "./LICENSE"
-one    =  read_code1 SOURCE
-two    =  read_code2 SOURCE
-three  =  read_code3 SOURCE
-one    == two   # => true
-one    == three # => true
+SOURCE = "./LICENSE"
+one    = read_code1 SOURCE
+two    = read_code2 SOURCE
+three  = read_code3 SOURCE
+one  ==  two   #  => true
+one  ==  three #  => true
 
 # Phrase: Extend self
 #===========================================================
@@ -1652,18 +2720,6 @@ end
 methB(b)  # => [[1, 2, 3, 4, 5], nil, []]
 methB(*b) # => [1, 2, [3, 4, 5]]
 methB(*a) # => [1, 2, [3]]
-
-
-# Phrase: StringIO sample
-#============================================================
-# usefull for pasuado IO during test phase.
-require 'stringio'
-io = StringIO.new
-io.puts "ABC"
-io.puts "DEF"
-io.print "GHI\n\n"
-io.print "JKL"
-io.string # => "ABC\nDEF\nGHI\n\nJKL"
 
 # Phrase: regexp captures
 #============================================================
