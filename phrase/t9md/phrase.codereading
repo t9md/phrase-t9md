@@ -1,0 +1,41 @@
+" Phrase: Basic
+"============================================================
+variable
+ => scope[ global, local, file_local ]
+ => [I, ]I
+ => [i, ]i
+ => gd
+ => g[ => goto definition
+ => C-W i or C-W,C-i
+ => ]C-i
+ => C-](go) C-T(back)
+ => g^] use :tjump instead of tag(C-])
+ => C-w }, C-w g}
+
+function
+ => purpose, guess from it's name
+ => when you feel difficult to understand what for
+    its good to investigate how that function is called or used
+
+data structure
+ => picture in your brain while reading function
+    use sketchbook and pen.
+
+run wih small working code
+ => use with small peces.
+
+algorythm
+ => study and learn basic algorythm, its helps grasp the 
+    purpose of code
+
+" Phrase: Tool
+"============================================================
+ctags
+Tlist
+
+manage path setting  set path=.,/Users/taqumd/local/src/bitclust/bitclust/lib/
+C-w]
+
+" Phrase: Book
+"============================================================
+algorythm introduction
