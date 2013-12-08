@@ -346,7 +346,7 @@ function! s:hoge() abort
         \ v ==# 12 ? 2 :
         \ v ==# 13 ? 3 :
         \ v ==# 14 ? 4 :
-        \ NOT_EXIST_LOCAL_VARIABLE
+        \ SHOULD_NOT_REACH_HERE
   echo case
 endfunction
 
