@@ -1,3 +1,34 @@
+" Phrase: condition check variety / コンディション分岐の色々な方法
+"======================================================================
+function! s:way1(mode)
+  if      a:mode == '1' | let range_str = 'one'
+  elseif  a:mode == '2' | let range_str = "two"
+  elseif  a:mode == '3' | let range_str = 'three'
+  else                  | let range_str = 'other'
+  endif
+  echo range_str
+endfunction
+
+function! s:way2(num) abort
+  " 絶対にたどり着くべきでないから存在しない変数
+  " SHOULD_NOT_REACH_HERE を参照してエラーにする。
+  let case =
+        \ a:num ==# 11 ? 1 :
+        \ a:num ==# 12 ? 2 :
+        \ a:num ==# 13 ? 3 :
+        \ a:num ==# 14 ? 4 :
+        \ SHOULD_NOT_REACH_HERE
+  echo case
+endfunction
+
+function! s:way3(mode)
+  echo
+        \ a:mode ==# '1' ? 'one'   :
+        \ a:mode ==# '2' ? 'two'   :
+        \ a:mode ==# '3' ? 'three' :
+        \                  'other'
+endfunction
+
 " Phrase: pass args as-is / public 関数側の引数リストを変更に強くする。
 "=============================================================================
 " 引数をそのままたらい回す。
@@ -410,60 +441,6 @@ endfunction
 echo s:exe_with_dir("~/.vim/bundle", "find . -type d -depth 2")
 echo s:func_with_dir("~/.vim/bundle", function("s:hello"))
 
-" Phrase: neat condition clause
-"======================================================================
-function! Dev1(mode)
-  if      a:mode == '1' | let range_str = 'one'   |
-  elseif  a:mode == '2' | let range_str = "two"   |
-  elseif  a:mode == '3' | let range_str = 'three' |
-  else                  | let range_str = 'other' |
-  endif
-  echo range_str
-endfunction
-
-function! s:hoge() abort
-  let v = 14
-  let case =
-        \ v ==# 11 ? 1 :
-        \ v ==# 12 ? 2 :
-        \ v ==# 13 ? 3 :
-        \ v ==# 14 ? 4 :
-        \ SHOULD_NOT_REACH_HERE
-  echo case
-endfunction
-
-
-function! Dev2(mode)
-  echo
-        \ a:mode  == '1' ? 'one'   :
-        \ a:mode  == '2' ? 'two'   :
-        \ a:mode  == '3' ? 'three' :
-        \                'other'
-endfunction
-
-echo "--------"
-call Dev1(1) | call Dev1(2) | call Dev1(3) | call Dev1(4)
-echo "--------"
-call Dev2(1) | call Dev2(2) | call Dev2(3) | call Dev2(4)
-echo "--------"
-
-" Phrase: default setter
-"======================================================================
-let g:default_settings = {
-      \ "g:http_port": 80,
-      \ "g:http_version": 1.0,
-      \ "g:http_timeout": 3,
-      \ }
-
-function! s:set_default(dict)
-  for [var,val] in items(a:dict)
-    if !exists(var)
-      let {var} = val
-    endif
-  endfor
-endfunction
-
-call s:set_default(g:default_settings)
 
 " Phrase: chef.vim test code
 "======================================================================
