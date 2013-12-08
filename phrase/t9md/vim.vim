@@ -1,3 +1,18 @@
+" Phrase: pass args as-is / public 関数側の引数リストを変更に強くする。
+"=============================================================================
+" 引数をそのままたらい回す。
+" s:phrase.start() の引数リストを変える度に、phrase#start() 側の引数リストに
+" 変更を毎回加えるのは面倒。call() に a:000 を渡すことで不要になる。
+
+let s:phrase = {}
+function! s:phrase.start(ope, ...) "{{{1
+  " hoghog
+endfunction
+
+function! phrase#start(...) "{{{1
+  call call(s:phrase.start, a:000, s:phrase)
+endfunction
+
 " Phrase: cli complete: 特定の dir  配下のファイル名を補完
 "=============================================================================
 command! -nargs=? -complete=customlist,phrase#myfiles
@@ -14,27 +29,67 @@ function! phrase#myfiles(A, L, P) "{{{1
   return R
 endfunction
 
+" Phrase: global var default , プラグインの global 変数の設定
+"======================================================================
+" 方式1
+" この方式の利点は、g:phrase_author の様に変数名をそのまま'g:'でかける
+" 点。検索で引っかかるので。
+function! s:set_options(options) "{{{1
+  for [varname, value] in items(a:options)
+    if !exists(varname)
+      let {varname} = value
+    endif
+    unlet value
+  endfor
+endfunction
+
+let s:options = {
+      \ 'g:phrase_author':          expand("$USER"),
+      \ 'g:phrase_basedir':         "~/.vim/phrase",
+      \ 'g:phrase_ft_tbl':          {},
+      \ 'g:phrase_author_priority': {},
+      \ }
+
+call s:set_options(s:options)
+
+" 方式2
+" 特に関数定義しなくても良いので楽。'g:phrase_author'
+" で検索しても引っかからないのが少しイヤ。
+let g:phrase_author = get(g:, 'phrase_author', expand("$USER"))
+
+" 方式3
+" 一番ベーシック
+if exists('g:phrase_author')
+  let g:phrase_author = expand("$USER")
+endif
+
 " Phrase: python's if __name__ == “__main__”
 "======================================================================
 if expand("%:p") !=# expand("<sfile>:p")
   finish
 endif
 
-" Phrase: logger
+" Phrase: logger:
 "======================================================================
+" plugin 開発中のログ出力。'tail -f ~/vimlog.log' で見る。
 function! s:smalls.log(msg)
   cal vimproc#system('echo "' . a:msg . '" >> ~/vimlog.log')
 endfunction
 
 " Phrase: should and should not ensurerer
 "======================================================================
+" validate チェックのネストが深くなると、可読性、保守性が下がるので、
+" try catch clause で囲って、throw するようにすると楽。
+" 深い関数呼び出しからも一気に抜けれて便利。
+
+" 例1)
 function! Test(case, v)
   echo a:case
   try
-    call s:should( empty(a:v), "should empty" )
+    call s:should(empty(a:v), "should empty" )
     call s:should_not( empty(a:v), "empty not allowed" )
   catch
-    echo v:exception
+    echo ' => Exception: ' . v:exception
   endtry
 endfunction
 
@@ -43,19 +98,40 @@ function! s:should(expr, err)
     throw a:err
   endif
 endfunction
+
 function! s:should_not(expr, err)
   if a:expr
     throw a:err
   endif
 endfunction
-call Test("#case1: pass empty", '')
-call Test("#case2: pass not empty", 'a')
-" #case1: pass empty
-" empty not allowed
-" #case2: pass not empty
-" should empty
 
-" Phrase: ErrorCheck
+call Test("#case1: pass empty", '')
+" #case1: pass empty
+"  => Exception: empty not allowed
+call Test("#case2: pass not empty", 'a')
+" #case2: pass not empty
+"  => Exception: should empty
+
+" 例2)
+function! s:ensure(expr, msg) "{{{1
+  if !a:expr
+    throw "phrase.vim: " . a:msg
+  endif
+endfunction
+
+" プラグイン内での様々なチェック, 
+call s:ensure(!empty(category), 'empty category or &filetype')
+call s:ensure(!empty(category), 'empty category or &filetype')
+call s:ensure(!empty(category), 'empty category or &filetype')
+call s:ensure(isdirectory(directory), "not directory '" . directory . "'")
+
+" いちいち以下のようにやると行数が増えてつらい。
+" condition の部分が長くなることもあるし。
+if empty(category)
+  throw 'phrase.vim: empty category or &filetype'
+endif
+
+" Phrase: ErrorCheck: いろいろなエラーチェック
 "======================================================================
 function! s:checker(check, ...)
 　let expr = get(a:, 1, "ERROR")
@@ -81,45 +157,35 @@ endfunction
 let _ = Check1() && s:throw("ERROR")
 let _ = Check2() && s:throw("ERROR")
 
-" Phrase: default setting
-"======================================================================
-let g:textmanip_default_mode = "replace"
-let s:default_settings = {
-      \ "enable_mappings" : 0,
-      \ "default_mode" : "insert",
-      \ }
 
-let s:prefix = "textmanip_"
-function! s:set_default(dict) "{{{
-  for [name, val] in items(a:dict)
-    let var = s:prefix . name
-    let g:{var} = get(g:, var, val)
-    unlet name val
-  endfor
-endfunction "}}}
-call s:set_default(s:default_settings)
-
-" Phrase: v: variable
-"======================================================================
+" Phrase: v: g:, l:, w: as dictonary var / g: とかは辞書としてアクセス出来る。
+"============================================================================
 for [k,v] in items(v:)
   echo join(["v:" . k, PP(v) ]," = ")
   unlet v
 endfor
 
-" Phrase: include
-"======================================================================
-let lis = ["ruby", "python", "perl"]
-function! s:include(list, val)
-  return index(a:list, a:val)
-endfunction
-echo s:include(lis, "ruby")
+" Phrase: List include? / List に要素が含まれるかのチェックは index() で可能
+"============================================================================
+" 含まれない場合は -1 が返る。
+
+let list = ["ruby", "python", "perl"]
+echo index(lis, "ruby")
 " => 0
-echo s:include(lis, "python")
+echo index(lis, "python")
 " => 1
-echo s:include(lis, "perl")
+echo index(lis, "perl")
 " => 2
-echo s:include(lis, "perlo")
+echo index(lis, "lua")
 " => -1
+
+function! s:is_include(list, val)
+  return index(a:list, a:val) != -1
+endfunction
+echo s:is_include(lis, "ruby")
+" => 1
+echo s:is_include(lis, "lua")
+" => 0
 
 " Phrase: command args
 "======================================================================
