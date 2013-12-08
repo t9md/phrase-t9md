@@ -1,7 +1,3 @@
-" Phrase: hoge
-"======================================================================
-if expand("%:p") !=# expand("<sfile>:p")
-
 " Phrase: python's if __name__ == “__main__”
 "======================================================================
 if expand("%:p") !=# expand("<sfile>:p")
@@ -343,14 +339,16 @@ function! Dev1(mode)
   echo range_str
 endfunction
 
-let v = 14
-let case =
+function! s:hoge() abort
+  let v = 14
+  let case =
         \ v ==# 11 ? 1 :
         \ v ==# 12 ? 2 :
         \ v ==# 13 ? 3 :
         \ v ==# 14 ? 4 :
-        \ throw
-echo case
+        \ NOT_EXIST_LOCAL_VARIABLE
+  echo case
+endfunction
 
 
 function! Dev2(mode)
@@ -544,11 +542,11 @@ echo PP(s:sort_by_length(numbers))
 echo PP(s:reverse_sort_by_length(numbers))
 " => ['444444444444444', '55555555', '666666', '22222', '11', '3']
 
-"  Phrase: Tips
+" Phrase: Tips
 " ======================================================================
 " ]c, [c 次/前の差異
 
-"  Phrase: get SID
+" Phrase: get SID
 " ======================================================================
 function! s:SID()
     return matchstr(expand('<sfile>'), '<SNR>\zs\d\+\ze_SID$')
