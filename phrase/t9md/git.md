@@ -1,4 +1,4 @@
- Git example
+Git example
 ===================================
 ## コミットログを変更
     git commit --amend

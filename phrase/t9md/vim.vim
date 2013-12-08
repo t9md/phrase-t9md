@@ -1,3 +1,19 @@
+" Phrase: cli complete: 特定の dir  配下のファイル名を補完
+"=============================================================================
+command! -nargs=? -complete=customlist,phrase#myfiles
+      \ PhraseEdit :call phrase#start('edit'  , <f-args>)
+
+function! phrase#myfiles(A, L, P) "{{{1
+  let R = []
+  for file in split(globpath(s:phrase_dir, '*'), "\n")
+    let f = fnamemodify(file, ':p:t')
+    if f =~# '^\V' . a:A
+      call add(R, f)
+    endif
+  endfor
+  return R
+endfunction
+
 " Phrase: python's if __name__ == “__main__”
 "======================================================================
 if expand("%:p") !=# expand("<sfile>:p")
