@@ -1,3 +1,13 @@
+" Phrase: 変更範囲の矩形ハイライト
+"=============================================================================
+call clearmatches()
+let [sl, sc] = [line("'["), col("'[")]
+let [el, ec] = [line("']"), col("']")]
+echo [sl, sc]
+echo [el, ec]
+let pat = printf('\v\c%%>%dl%%>%dc.*%%<%dl%%<%dc', sl-1, sc-1, el+1, ec+1)
+call matchadd('Visual', pat)
+
 " Phrase: condition check variety / コンディション分岐の色々な方法
 "======================================================================
 function! s:way1(mode)
@@ -106,8 +116,8 @@ call s:runtest()
 " Phrase: logger:
 "======================================================================
 " plugin 開発中のログ出力。'tail -f ~/vimlog.log' で見る。
-function! s:smalls.log(msg)
-  cal vimproc#system('echo "' . a:msg . '" >> ~/vimlog.log')
+function! s:plog(msg) "{{{1
+  call vimproc#system('echo "' . PP(a:msg) . '" >> ~/vim.log')
 endfunction
 
 " Phrase: should and should not ensurerer
