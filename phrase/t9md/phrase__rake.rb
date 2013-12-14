@@ -436,4 +436,4 @@ module RakeHelper
   end
 end
 include RakeHelper
-# phrase: rake
+# phrase_file: rake.rb

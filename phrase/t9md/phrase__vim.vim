@@ -113,6 +113,14 @@ if expand("%:p") !=# expand("<sfile>:p")
 endif
 call s:runtest()
 
+" 例２: 明示的に source した場合に、g:loaded_XXX ガードを交わす。
+if expand("%:p") ==# expand("<sfile>:p")
+  unlet! g:loaded_phrase
+endif
+if exists('g:loaded_phrase')
+  finish
+endif
+
 " Phrase: logger:
 "======================================================================
 " plugin 開発中のログ出力。'tail -f ~/vimlog.log' で見る。

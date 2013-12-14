@@ -302,5 +302,5 @@ node.set.activemq.wrapper.max_memory = "60"
 
 require_recipe "activemq"
 # node.default.activemq.wrapper.max_memory = "60"
-# phrase: chef
+# phrase_file: phrase__chef.rb
 # vim: set ft=ruby:
