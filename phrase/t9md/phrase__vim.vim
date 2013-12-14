@@ -173,8 +173,6 @@ endfunction
 
 " プラグイン内での様々なチェック, 
 call s:ensure(!empty(category), 'empty category or &filetype')
-call s:ensure(!empty(category), 'empty category or &filetype')
-call s:ensure(!empty(category), 'empty category or &filetype')
 call s:ensure(isdirectory(directory), "not directory '" . directory . "'")
 
 " いちいち以下のようにやると行数が増えてつらい。
@@ -191,14 +189,16 @@ function! s:checker(check, ...)
 　　throw expr
 　endif
 endfunction
-call s:checker(Check1())
-call s:checker(Check2(), "ERROR Check2")
+
 function! Check1()
   return 1
 endfunction
 function! Check2()
   return 1
 endfunction
+call s:checker(Check1())
+call s:checker(Check2(), "ERROR Check2")
+
 command! -nargs=* Checker if <args> | throw "ERROR" | endif
 Checker Check1()
 Checker Check2()
@@ -208,7 +208,6 @@ function! s:throw(exp)
 endfunction
 let _ = Check1() && s:throw("ERROR")
 let _ = Check2() && s:throw("ERROR")
-
 
 " Phrase: v: g:, l:, w: as dictonary var / g: とかは辞書としてアクセス出来る。
 "============================================================================
@@ -584,7 +583,7 @@ let @/ = ''
 
 " Phrase: array with number
 "======================================================================
-for [num, line] in map(readfile("/home/maeda_taku/.bashrc"),'[v:key+1, v:val]')
+for [num, line] in map(readfile("/home/t9md/.bashrc"),'[v:key+1, v:val]')
   echo num ":" line
 endfor
 
@@ -594,7 +593,6 @@ endfor
 function! s:get_selected_text() "{{{
     let save_z = getreg('z', 1)
     let save_z_type = getregtype('z')
-
     try
         normal! gv"zy
         return @z
