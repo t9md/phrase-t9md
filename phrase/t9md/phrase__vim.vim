@@ -1,4 +1,49 @@
-" Phrase: 変更範囲の矩形ハイライト
+" Phrase: exists() idiom | exists()
+"=============================================================================
+" 関数が存在すれば呼ぶ has_key() を使う必要はない。
+if exists('*g:ezbar.parts._init')
+  call g:ezbar.parts._init()
+endif
+
+" 環境変数が存在するか？
+echo exists('$HOME')
+" オプションが存在するか？機能するかは気にしない。
+echo exists('&fileencoding')
+" オプションが機能するか？
+echo exists('+fileencoding')
+
+" 変数が存在するか？
+let bar = 0
+echo exists('bar')
+
+" List
+let foo = [1,2,3]
+echo exists('foo[0]')
+" => 1
+echo exists('foo[2]')
+" => 1
+echo exists('foo[3]')
+" => 0
+
+" Dictionary
+let bar = {'a': 1, 'b': 2}
+echo exists('bar')
+" => 1
+echo exists('bar.a')
+" => 1
+echo exists('bar.c')
+" => 0
+
+" Curly-braces-names
+unlet! foo bar
+let foo = 'bar' | echo exists('{foo}')
+" => 0
+let bar = ''    | echo exists('{foo}')
+" => 1
+unlet bar       | echo exists('{foo}')
+" => 0
+
+" Phrase: highlight pattern for rectangle change / 変更範囲の矩形ハイライト
 "=============================================================================
 call clearmatches()
 let [sl, sc] = [line("'["), col("'[")]
