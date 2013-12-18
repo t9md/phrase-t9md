@@ -1,3 +1,56 @@
+" Phrase: Dictionary function name / 辞書関数の名前
+"=============================================================================
+let s:d = {}
+function! s:d.fun1()
+  echo s:dict_funname(self)
+endfunction
+
+function! s:d.fun2()
+  echo s:dict_funname(self)
+endfunction
+
+function! s:dict_funname(dict)
+  let signature = expand('<sfile>')
+  let myfunc = matchstr(split(signature, '\V..')[-2],'\d\+')
+  for v in items(a:dict)
+    if string(v[1]) =~# "'" . myfunc . "'"
+      return v[0]
+    endif
+  endfor
+endfunction
+
+call s:d.fun1()
+" => fun1
+call s:d.fun2()
+" => fun2
+
+" Phrase: Function name / スクリプトローカルな関数の名前を得る。
+"=============================================================================
+function! s:funname(format)
+  " intended for use inner function
+  let signature = expand('<sfile>')
+  if a:format ==# 'raw'
+    return signature
+  elseif a:format ==# 'this'
+    let s =  split(signature, '\.\.')[-2]
+    return matchstr(s, '<SNR>\d\+_\zs.*\ze$')
+  elseif a:format ==# 'this_with_SNR'
+    let s =  split(signature, '\.\.')[-2]
+    return matchstr(s, '\zs<SNR>\d\+_.*\ze$')
+  endif
+endfunction
+
+function! s:this_function()
+  echo s:funname('raw')
+  " => function <SNR>266_this_function..<SNR>266_funname
+  echo s:funname('this')
+  " => this_function
+  echo s:funname('this_with_SNR')
+  " => <SNR>266_this_function
+endfunction
+
+call s:this_function()
+
 " Phrase: exists() idiom | exists()
 "=============================================================================
 " 関数が存在すれば呼ぶ has_key() を使う必要はない。
