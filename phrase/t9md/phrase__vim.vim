@@ -1,3 +1,210 @@
+" Phrase: Command meta programming / 黒魔術 by manga-osyo
+"=============================================================================
+let s:apply = []
+let s:count = 0
+command! ENDfunction
+      \	let s:count += 1
+      \| execute "function! s:func" . s:count . "() \n endfunction"
+      \| call add(s:apply, function("s:func" . s:count))
+      \| execute "function! s:func" . s:count . "()"
+
+ENDfunction
+  echo "homu"
+endfunction
+
+function! s:apply_colorscheme(name)
+  echo "colorschem " . a:name
+endfunction
+
+ENDfunction
+  call s:apply_colorscheme("mami")
+endfunction
+" なんかいっぱい処理
+call map(s:apply, "v:val()")
+
+" Phrase: String interpolation / 文字列の差し込み
+"=============================================================================
+function! s:intrpl(string, vars) "{{{1
+  let mark = '\v\{(.{-})\}'
+  return substitute(a:string, mark,'\=a:vars[submatch(1)]', 'g')
+endfunction
+
+echo s:intrpl('\v%{w0}l\_.*%{w$}l', { 'w0': line('w0'), 'w$': line('w$') })
+" =>  \v%1l\_.*%20l
+
+function! s:intrpl(string, vars) "{{{1
+  let mark = '\v\{(.{-})\}'
+  let r = []
+  for expr in s:scan(a:string, mark)
+    call add(r, substitute(expr, '\v([a-z][a-z$0]*)', '\=a:vars[submatch(1)]', 'g'))
+  endfor
+  call map(r, 'eval(v:val)')
+  return substitute(a:string, mark,'\=remove(r, 0)', 'g')
+endfunction
+
+function! s:scan(str, pattern) "{{{1
+  let ret = []
+  let nth = 1
+  while 1
+    let m = matchlist(a:str, a:pattern, 0, nth)
+    if empty(m)
+      break
+    endif
+    call add(ret, m[1])
+    let nth += 1
+  endwhile
+  return ret
+endfunction
+
+echo s:intrpl('\v%{w0+1}l\_.*%{w$+1}l', { 'w0': line('w0'), 'w$': line('w$') })
+" =>  \v%1l\_.*%20l
+
+" Phrase: show typed key readable format
+"=============================================================================
+let s:table = smalls#util#import('special_key_table')()
+function! s:getchar() "{{{1
+  let c = getchar()
+  return type(c) == type(0) ? nr2char(c) : c
+endfunction
+
+function! s:test()
+  while 1
+    redraw
+    let char = s:getchar()
+    if char ==# "\<C-j>"
+      break
+    endif
+
+    call g:plog(get(s:table, char, char))
+  endwhile
+endfunction
+call s:test()
+
+" Phrase: tab2space()
+"=============================================================================
+function! s:tab2space(str, tabstop) "{{{1
+  return substitute(a:str, "\t", repeat(" ", a:tabstop), 'g')
+endfunction
+
+" Phrase: undojoin experiment
+"=============================================================================
+function! s:insert(chars)
+  silent exec 'normal! i' a:chars "\<ESC>"
+endfunction
+
+function! s:undobreak()
+  let &undolevels = &undolevels
+  " silent exec 'normal!' "i\<C-g>u\<ESC>"
+endfunction
+
+function! s:test2()
+  call s:undobreak()
+  " undojoin
+  call s:insert('aaa')
+  exec 'normal! iaaaabbb' "\<Esc>"
+
+  " undojoin
+  call s:insert('bbb')
+  undo
+endfunction
+
+call s:test2()
+
+function! s:insert(chars)
+  silent exec 'normal! i' a:chars "\<ESC>"
+endfunction
+
+function! s:undobreak()
+  let &undolevels = &undolevels
+  " silent exec 'normal!' "i\<C-g>u\<ESC>"
+endfunction
+
+let s:insert = {}
+function! s:insert.a()
+  call s:insert('aaa')
+endfunction
+function! s:insert.b()
+  call s:insert('bbb')
+endfunction
+function! s:insert.c()
+  call s:insert('ccc')
+endfunction
+
+function! s:test2()
+  call s:insert.a()
+  let org = winnr()
+  exec 'wincmd w'
+  exec org 'wincmd w'
+  undojoin
+  call s:insert.b()
+  let org = winnr()
+  exec 'wincmd w'
+  exec org 'wincmd w'
+  undojoin
+  call s:insert.c()
+  call append(line('$'), map(range(5), '""'))
+  " undo
+endfunction
+
+call s:test2()
+" let bufnr     = winbufnr(a:win)
+
+" Phrase: hide cursor
+"=============================================================================
+function! s:highlight_preserve(hlname) "{{{1
+  redir => HL_SAVE
+  execute 'silent! highlight ' . a:hlname
+  redir END
+  return 'highlight ' . a:hlname . ' ' .
+        \  substitute(matchstr(HL_SAVE, 'xxx \zs.*'), "\n", ' ', 'g')
+endfunction
+
+function! s:cw.cursor_hide() "{{{1
+  let self._hl_cursor_cmd = s:highlight_preserve('Cursor')
+  let self._t_ve_save = &t_ve
+
+  highlight Cursor NONE
+  let &t_ve=''
+endfunction
+
+function! s:cw.cursor_restore() "{{{1
+  execute self._hl_cursor_cmd
+  let &t_ve = self._t_ve_save
+endfunction
+
+" Phrase: highlight preserve
+"=============================================================================
+function! s:highlight_capture(hlname) "{{{1
+  redir => HL_SAVE
+  execute 'silent! highlight ' . a:hlname
+  redir END
+  let defstr = matchstr(HL_SAVE, 'xxx \zs.*')
+
+  let R = { 'gui': ['','',''], 'cterm': ['','','']}
+  for def in split(defstr, '\s')
+    let [key,val] = split(def, '=')
+    if     key ==# 'guibg'   | let R['gui'][0]   = val
+    elseif key ==# 'guifg'   | let R['gui'][1]   = val
+    elseif key ==# 'gui'     | let R['gui'][2]   = val
+    elseif key ==# 'ctermbg' | let R['cterm'][0] = val
+    elseif key ==# 'ctermfg' | let R['cterm'][2] = val
+    elseif key ==# 'cterm'   | let R['cterm'][2] = val
+    endif
+  endfor
+  return R
+endfunction
+
+let choosewin_cursor = s:highlight_capture('Normal')
+let choosewin_cursor.gui[2]   = 'underline'
+let choosewin_cursor.cterm[2] = 'underline'
+let self.color_cursor = self.highlighter.register(choosewin_cursor)
+
+" Phrase: reltimestr / 経過時間を計測
+"=============================================================================
+let start = reltime()
+sleep 1.0
+echo reltimestr(reltime(start))
+
 " Phrase: Dictionary function name / 辞書関数の名前
 "=============================================================================
 let s:d = {}
@@ -269,7 +476,7 @@ function! s:ensure(expr, msg) "{{{1
   endif
 endfunction
 
-" プラグイン内での様々なチェック, 
+" プラグイン内での様々なチェック,
 call s:ensure(!empty(category), 'empty category or &filetype')
 call s:ensure(isdirectory(directory), "not directory '" . directory . "'")
 
@@ -663,7 +870,7 @@ PP {th}{is}()
 
 " Phrase: registers()
 "============================================================
-" There are nine types of registers:			*registers* *E354*
+" There are nine types of registers:      *registers* *E354*
 " 1. The unnamed register ""
 " 2. 10 numbered registers "0 to "9
 " 3. The small delete register "-
@@ -806,11 +1013,11 @@ echo s:gsub(word,'p','g')
 let s:type = {}
 let s:type_list = {
             \ "number": type(0),
-			\ "string": type(""),
-			\ "function": type(function("tr")),
-			\ "list": type([]),
-			\ "dictionary": type({}),
-			\ "float": type(0.0)
+      \ "string": type(""),
+      \ "function": type(function("tr")),
+      \ "list": type([]),
+      \ "dictionary": type({}),
+      \ "float": type(0.0)
             \ }
 
 function! s:add_method(obj, methods)
@@ -1046,18 +1253,18 @@ call Main()
 "  Phrase: Unique
 " ======================================================================
 function! Unique(list) " -- remove duplicate values from {list} (in-place) {{{
-	let index = 0
-	while index < len(a:list)
-		let value = a:list[index]
-		let match = index(a:list, value, index+1)
-		if match >= 0
-			call remove(a:list, match)
-		else
-			let index += 1
-		endif
-		unlet value
-	endwhile
-	return a:list
+  let index = 0
+  while index < len(a:list)
+    let value = a:list[index]
+    let match = index(a:list, value, index+1)
+    if match >= 0
+      call remove(a:list, match)
+    else
+      let index += 1
+    endif
+    unlet value
+  endwhile
+  return a:list
 endfunction "}}}
 
 "  Phrase: timer object
@@ -1685,31 +1892,31 @@ echo expand('%<')
 "============================================================
 let s:m = {}
 fun! s:m.shift()
-	return remove(self.data, 0)
+  return remove(self.data, 0)
 endfun
 
 fun! s:m.unshift(val)
-	return insert(self.data, a:val, 0)
+  return insert(self.data, a:val, 0)
 endfun
 
 fun! s:m.pop()
-	return remove(self.data, -1)
+  return remove(self.data, -1)
 endfun
 
 fun! s:m.push(val)
-	return add(self.data, a:val)
+  return add(self.data, a:val)
 endfun
 
 fun! s:m.concat(ary)
-	return extend(self.data, a:ary)
+  return extend(self.data, a:ary)
 endfun
 
 let Array = {}
 fun! Array.new(data)
-	let obj = {}
-	let obj.data = a:data
-	call extend(obj, s:m, 'error')
-	return obj
+  let obj = {}
+  let obj.data = a:data
+  call extend(obj, s:m, 'error')
+  return obj
 endfun
 
 echo "-setup--"
@@ -1964,14 +2171,14 @@ call hanako.hello()
 " Phrase: Array multiple asignment
 "============================================================
 let member = [
-			\ ["Yamada", "Tarou", 1999, 9, 1],
-			\ ["Yamada", "Hanako", 1970, 3, 11]
-			\ ]
+      \ ["Yamada", "Tarou", 1999, 9, 1],
+      \ ["Yamada", "Hanako", 1970, 3, 11]
+      \ ]
 
 for [sec_name, first_name; date ] in member
-	let full_name = "'".sec_name." ".first_name."'"
-	let born_date = join(date,"_")
-	echo full_name." was born at ".born_date."."
+  let full_name = "'".sec_name." ".first_name."'"
+  let born_date = join(date,"_")
+  echo full_name." was born at ".born_date."."
 endfor
 
 " Phrase: Misc
