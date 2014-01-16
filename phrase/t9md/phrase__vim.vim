@@ -1,3 +1,35 @@
+" Phrase: performance for vs map / for と map の速度比較
+"=============================================================================
+function! s:val(arg) "{{{1
+  " noop
+endfunction
+"}}}
+
+let start = reltime()
+let list = range(500000)
+" for n in list | call s:val(n) | endfor
+" for n in list | call s:val(n) | endfor
+" call map(list, 's:val(v:val)')
+" call map(list, 's:val(v:val)')
+echo reltimestr(reltime(start))
+
+" Phrase: backword compatible api change
+"=============================================================================
+" care backward compatibility "{{{
+let arg_1st = get(a:000, 0, {})
+let arg_2nd = get(a:000, 1, '')
+
+if type(arg_1st) is s:TYPE_DICTIONARY
+  let config = arg_1st
+else
+  " old api call
+  let config = { 'auto_choose': arg_1st }
+  if !empty(arg_2nd)
+    let config.label = arg_2nd
+  endif
+  echoerr 'Choosewin: you use old api, help "choosein#start()" for new api-call'
+endif "}}}
+
 " Phrase: Command meta programming / 黒魔術 by manga-osyo
 "=============================================================================
 let s:apply = []
