@@ -1,3 +1,54 @@
+" Phrase: rename dict key / 辞書のキーを rename
+"=============================================================================
+function! s:dict_rename(dict, table) "{{{1
+  for [old, new] in items(a:table)
+    let a:dict[new] = a:dict[old]
+    unlet a:dict[old]
+  endfor
+  return a:dict
+endfunction
+"}}}
+
+let s:dict_orig = {
+      \ 'mode':     'mode',
+      \ 'readonly': 'readonly',
+      \ 'filename': 'filename',
+      \ 'modified': 'modified',
+      \ 'filetype': 'filetype',
+      \ 'win_buf':  'win_buf',
+      \ 'encoding': 'encoding',
+      \ 'percent':  'percent',
+      \ 'line_col': 'line_col',
+      \ }
+
+let s:rename_table = {
+      \ 'mode':     'm',
+      \ 'readonly': 'ro',
+      \ 'filename': 'fname',
+      \ 'modified': 'mod',
+      \ 'filetype': 'ft',
+      \ 'win_buf':  'wb',
+      \ 'encoding': 'enc',
+      \ 'percent':  '%',
+      \ 'line_col': 'lc',
+      \ }
+
+call s:dict_rename(s:dict_orig, s:rename_table)
+echo PP(s:dict_orig)
+
+" =>
+"  {
+"    '%': 'percent',
+"    'enc': 'encoding',
+"    'fname': 'filename',
+"    'ft': 'filetype',
+"    'lc': 'line_col',
+"    'm': 'mode',
+"    'mod': 'modified',
+"    'ro': 'readonly',
+"    'wb': 'win_buf'
+"  }
+
 " Phrase: performance for vs map / for と map の速度比較
 "=============================================================================
 function! s:val(arg) "{{{1
